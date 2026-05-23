@@ -1,0 +1,15 @@
+accounts:
+  - handle: polymarket
+    label: Polymarket
+    category: prediction_markets
+    priority: high
+
+  - handle: Kalshi
+    label: Kalshi
+    category: prediction_markets
+    priority: high
+
+  - handle: shayne_coplan
+    label: Shayne Coplan
+    category: polymarket
+    priority: high

@@ -1,0 +1,9 @@
+[Unit]
+Description=Send X Web3 Digest at 14:00 Israel time
+
+[Timer]
+OnCalendar=*-*-* 14:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

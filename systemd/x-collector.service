@@ -1,0 +1,8 @@
+[Unit]
+Description=X Web3 Digest collector
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/x-web3-digest
+EnvironmentFile=/opt/x-web3-digest/.env
+ExecStart=/opt/x-web3-digest/.venv/bin/python x_digest_collector.py
