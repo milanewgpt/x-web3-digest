@@ -143,9 +143,9 @@ def build_digest(rows, start_utc, end_utc, errors=""):
     items.sort(key=lambda x: (x["score"], x["date"]), reverse=True)
     selected = items[:MAX_ITEMS]
 
-    start_local = start_utc.astimezone(TZ_DIGEST).strftime("%H:%M")
-    end_local = end_utc.astimezone(TZ_DIGEST).strftime("%H:%M")
-    header = f"X Web3 Digest ({start_local}–{end_local} Israel)"
+    start_label = start_utc.astimezone(timezone.utc).strftime("%H")
+    end_label = end_utc.astimezone(timezone.utc).strftime("%H")
+    header = f"X digest ({start_label} - {end_label} UTC)"
 
     if not selected:
         body = "Нет новых сигналов."
