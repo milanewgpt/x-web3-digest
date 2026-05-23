@@ -32,16 +32,22 @@ cp accounts.example.yaml accounts.yaml
 python db_init.py
 ```
 
-Required env:
+Required env for collection:
 
 ```env
-TG_API_ID=...
-TG_API_HASH=...
-TG_SESSION_STRING=...
-TG_TARGET=Digest_mi
 SOCIALDATA_KEY=...
 DB_PATH=/data/x_digest.sqlite3
 ```
+
+Required env for Telegram Bot API delivery to a forum topic:
+
+```env
+TG_BOT_TOKEN=...
+TG_CHAT_ID=-1003733749773
+TG_MESSAGE_THREAD_ID=307
+```
+
+Telethon delivery is still available as fallback via `TG_API_ID`, `TG_API_HASH`, `TG_SESSION_STRING`, `TG_TARGET`.
 
 If `SOCIALDATA_KEY` is not set, collector checks:
 
