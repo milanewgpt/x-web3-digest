@@ -150,7 +150,21 @@ def build_digest(rows, start_utc, end_utc, errors=""):
     if not selected:
         body = "Нет новых сигналов."
     else:
-        body = "\n\n".join(format_item(it, i + 1) for i, it in enumerate(selected))
+        category_order = ["Base", "Solana", "Venice", "Polymarket", "Perps", "AI"]
+        grouped = {cat: [] for cat in category_order}
+        grouped["Other"] = []
+        for it in selected:
+            cat = it.get("category") or "Other"
+            grouped.setdefault(cat, []).append(it)
+
+        sections = []
+        for cat in category_order + [c for c in grouped if c not in category_order and c != "Other"] + ["Other"]:
+            cat_items = grouped.get(cat) or []
+            if not cat_items:
+                continue
+            formatted = "\n\n".join(format_item(it, i + 1) for i, it in enumerate(cat_items))
+            sections.append(f"## {cat}\n\n{formatted}")
+        body = "\n\n".join(sections)
         body += f"\n\nОтфильтровано: {max(0, len(rows) - len(selected))} постов"
 
     if errors:

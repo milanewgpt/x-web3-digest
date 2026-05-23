@@ -50,13 +50,24 @@ If `SOCIALDATA_KEY` is not set, collector checks:
 
 ## Accounts
 
-Edit `accounts.yaml`:
+Edit `accounts.yaml`. Categories are preserved as digest sections.
+
+Current sections:
+
+- Base
+- Solana
+- Venice
+- Polymarket
+- Perps
+- AI
+
+Example:
 
 ```yaml
 accounts:
   - handle: polymarket
     label: Polymarket
-    category: prediction_markets
+    category: Polymarket
     priority: high
 ```
 
