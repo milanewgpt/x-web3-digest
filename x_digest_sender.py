@@ -1,18 +1,19 @@
-import json
 import os
 import re
 import sqlite3
-import urllib.parse
-import urllib.request
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from telethon import TelegramClient
+from telethon.sessions import StringSession
+
+API_ID = int(os.environ["TG_API_ID"])
+API_HASH = os.environ["TG_API_HASH"]
+_session_str = os.environ.get("TG_SESSION_STRING") or os.environ.get("TG_SESSION_SENDER")
+SESSION = StringSession(_session_str) if _session_str and len(_session_str) > 50 else (_session_str or os.environ.get("TG_SESSION", "reader_session"))
+
 DB_PATH = os.environ.get("DB_PATH", "x_digest.sqlite3")
-TG_TARGET = os.environ.get("TG_TARGET", "")
-TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "").strip()
-TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "").strip()
-TG_MESSAGE_THREAD_ID = os.environ.get("TG_MESSAGE_THREAD_ID", "").strip()
+TG_TARGET = os.environ["TG_TARGET"]
 TZ_DIGEST = ZoneInfo(os.environ.get("TZ_DIGEST", "Asia/Jerusalem"))
 MAX_ITEMS = int(os.environ.get("MAX_ITEMS", "12"))
 MAX_CHARS_PER_ITEM = int(os.environ.get("MAX_CHARS_PER_ITEM", "300"))
@@ -171,76 +172,6 @@ def build_digest(rows, start_utc, end_utc, errors=""):
     return header + "\n\n" + body
 
 
-def load_secret(path):
-    p = Path(path).expanduser()
-    return p.read_text().strip() if p.exists() else ""
-
-
-def get_tg_bot_token():
-    return TG_BOT_TOKEN or load_secret("~/.hermes/secrets/x_digest_tg_bot_token")
-
-
-def get_tg_chat_id():
-    return TG_CHAT_ID or load_secret("~/.hermes/secrets/x_digest_tg_chat_id")
-
-
-def get_tg_message_thread_id():
-    return TG_MESSAGE_THREAD_ID or load_secret("~/.hermes/secrets/x_digest_tg_message_thread_id")
-
-
-def send_via_bot_api(text):
-    token = get_tg_bot_token()
-    chat_id = get_tg_chat_id()
-    thread_id = get_tg_message_thread_id()
-    if not token or not chat_id:
-        raise RuntimeError("TG_BOT_TOKEN and TG_CHAT_ID are required for Bot API delivery")
-
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "disable_web_page_preview": True,
-    }
-    if thread_id:
-        payload["message_thread_id"] = int(thread_id)
-
-    data = urllib.parse.urlencode(payload).encode()
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    req = urllib.request.Request(url, data=data, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode())
-    if not result.get("ok"):
-        raise RuntimeError(f"Telegram sendMessage failed: {result}")
-    return result
-
-
-async def send_via_telethon(text):
-    from telethon import TelegramClient
-    from telethon.sessions import StringSession
-
-    api_id = int(os.environ["TG_API_ID"])
-    api_hash = os.environ["TG_API_HASH"]
-    session_str = os.environ.get("TG_SESSION_STRING") or os.environ.get("TG_SESSION_SENDER")
-    session = StringSession(session_str) if session_str and len(session_str) > 50 else (
-        session_str or os.environ.get("TG_SESSION", "reader_session")
-    )
-    if not TG_TARGET:
-        raise RuntimeError("TG_TARGET is required for Telethon delivery")
-    client = TelegramClient(session, api_id, api_hash)
-    await client.start()
-    try:
-        target_entity = await resolve_target_by_name(client, TG_TARGET)
-        await client.send_message(target_entity, text)
-    finally:
-        await client.disconnect()
-
-
-async def send_digest(text):
-    if get_tg_bot_token() and get_tg_chat_id():
-        send_via_bot_api(text)
-    else:
-        await send_via_telethon(text)
-
-
 async def resolve_target_by_name(client, target_name):
     async for dialog in client.iter_dialogs():
         if dialog.name == target_name:
@@ -272,7 +203,11 @@ async def run():
     errors = get_state(con, "collector:last_errors", "")
     digest = build_digest(rows, start, end, errors)
 
-    await send_digest(digest)
+    client = TelegramClient(SESSION, API_ID, API_HASH)
+    await client.start()
+    target_entity = await resolve_target_by_name(client, TG_TARGET)
+    await client.send_message(target_entity, digest)
+    await client.disconnect()
 
     set_state(con, "digest:last_sent_utc", end.isoformat())
     con.close()
